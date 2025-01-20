@@ -1,6 +1,6 @@
 from web3 import Web3, Account
-from eth_defi.aave_v3.deployment import fetch_deployment
 from eth_defi.aave_v3.loan import supply, borrow
+from eth_defi.aave_v3.deployment import fetch_deployment
 from eth_defi.aave_v3.constants import AAVE_V3_DEPLOYMENTS
 from dotenv import load_dotenv
 import os
@@ -14,6 +14,7 @@ web3 = Web3(Web3.HTTPProvider(infura_url))
 from web3 import Web3
 
 WBTC_ADDRESS = "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599"
+USDC_ADDRESS = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eb48"
 
 ERC20_ABI = [
     {
@@ -46,6 +47,11 @@ wbtc_contract = web3.eth.contract(
     address=Web3.to_checksum_address(WBTC_ADDRESS), abi=ERC20_ABI
 )
 
+usdc_contract = web3.eth.contract(
+    address=Web3.to_checksum_address(USDC_ADDRESS), abi=ERC20_ABI
+)
+
+
 aave_v3 = fetch_deployment(
     web3,
     pool_address=AAVE_V3_DEPLOYMENTS["ethereum"]["pool"],
@@ -53,10 +59,8 @@ aave_v3 = fetch_deployment(
     oracle_address=AAVE_V3_DEPLOYMENTS["ethereum"]["oracle"],
 )
 
-
 def to_token_unit(amount, decimals):
     return int(amount * 10**decimals)
-
 
 def create_wallet():
     account = Account.create()
@@ -68,11 +72,11 @@ def create_wallet():
     return wallet_address, private_key
 
 
-def deposit_2(wallet_address, private_key, amount):
+def deposit2(wallet_address, amount):
     print("====================================")
-    print(wallet_address, private_key, amount)
+    print(wallet_address, amount)
     amount_in_wei = to_token_unit(amount, 8)
-    borrow_fn = borrow(
+    supply_fn = supply(
         aave_v3_deployment=aave_v3,
         token=wbtc_contract,
         amount=amount_in_wei,
@@ -80,12 +84,26 @@ def deposit_2(wallet_address, private_key, amount):
     )
 
     print("====================================")
+    print(supply_fn)
+
+
+def borrow2(wallet_address, amount):
+    print("====================================")
+    print(wallet_address, amount)
+    amount_in_wei = to_token_unit(amount, 8)
+    borrow_fn = borrow(
+        aave_v3_deployment=aave_v3,
+        token=usdc_contract,
+        amount=amount_in_wei,
+        wallet_address=wallet_address,
+    )
+
+    print("====================================")
     print(borrow_fn)
-    
-    
 
 
 if __name__ == "__main__":
     wallet_address, private_key = create_wallet()
 
-    deposit_2(wallet_address, private_key, 0.1)
+    deposit2(wallet_address, 0.1)
+    borrow2(wallet_address, 0.1)
